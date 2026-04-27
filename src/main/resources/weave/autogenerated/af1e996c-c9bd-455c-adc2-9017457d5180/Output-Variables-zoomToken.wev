@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_af1e996c_c9bd_455c_adc2_9017457d5180_Output_Variables_zoomToken = Any
+

@@ -1,0 +1,14 @@
+zoom:
+  accountId: YOUR_ACCOUNT_ID
+  clientId: YOUR_CLIENT_ID
+  clientSecret: YOUR_CLIENT_SECRET
+
+salesforce:
+  username: YOUR_USERNAME
+  password: YOUR_PASSWORD
+  consumerKey: YOUR_CONSUMER_KEY
+  consumerSecret: YOUR_CONSUMER_SECRET
+
+email:
+  user: YOUR_EMAIL
+  password: YOUR_APP_PASSWORD

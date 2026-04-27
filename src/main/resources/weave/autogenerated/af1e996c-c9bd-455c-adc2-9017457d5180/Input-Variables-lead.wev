@@ -1,0 +1,12 @@
+%dw 2.0
+
+type auto_af1e996c_c9bd_455c_adc2_9017457d5180_Input_Variables_lead = {|
+  Demo_Date_Time__c?: DateTime {"typeId": "Demo_Date_Time__c"}, 
+  Demo_Status__c?: ("Scheduled" | "Cancelled") {"typeId": "Demo_Status__c"}, 
+  Demo_Zoom_Link__c?: String {"typeId": "Demo_Zoom_Link__c"}, 
+  Demo_Zoom_Meeting_ID__c?: String {"typeId": "Demo_Zoom_Meeting_ID__c"}, 
+  Email?: String {"typeId": "Email"}, 
+  Id?: String {"typeId": "Id"}
+|} {"typeId": "Lead",
+"label": "Lead"}
+

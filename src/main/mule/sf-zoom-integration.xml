@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:oauth="http://www.mulesoft.org/schema/mule/oauth"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/oauth http://www.mulesoft.org/schema/mule/oauth/current/mule-oauth.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="b6346d77-9d6a-49ed-924a-0e43814a79e3">
+		<salesforce:oauth-user-pass-connection consumerKey="#[p('salesforce.consumerKey')]" consumerSecret="#[p('salesforce.consumerSecret')]" username="#[p('salesforce.username')]" password="#[p('salesforce.password')]" connectionTimeout="30" loginRequestTimeout="30"/>
+	</salesforce:sfdc-config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="fa5a0ff0-7cef-4026-a0b0-cf64d9662570" >
+		<email:smtp-connection host="smtp.gmail.com" port="587" user="#[p('smtp.user')]" password="#[p('smtp.password')]" connectionTimeout="30" readTimeout="30" writeTimeout="30">
+			<reconnection >
+				<reconnect frequency="5000" />
+			</reconnection>
+			<email:properties >
+				<email:property key="mail.smtp.starttls.enable" value="true" />
+			</email:properties>
+		</email:smtp-connection>
+	</email:smtp-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="0fe95d67-0c42-4209-a77b-0d02a0545ab7" file="config-${env}.yaml" />
+	<os:object-store name="ObjectStore_Config" doc:name="Object store" doc:id="0f2cde11-676e-42e9-803f-6736e61c1d66" entryTtl="3300"/>
+	<sub-flow name="getZoomToken" doc:id="af1e996c-c9bd-455c-adc2-9017457d5180" >
+		<try doc:name="Try" doc:id="d86a15ff-7a78-4a44-92f9-9921d04ecf60" >
+			<os:retrieve doc:id="ec5985a2-e866-4161-830a-f7f2d6b1b086" doc:name="Retrieve Token" key="zoomToken" target="cachedToken" objectStore="ObjectStore_Config">
+				<os:default-value ><![CDATA[-]]></os:default-value>
+			</os:retrieve>
+			<choice doc:name="Choice" doc:id="becedae0-152e-4c4b-b837-891690964ce6" >
+				<when expression="#[vars.cachedToken != '-']">
+					<logger level="INFO" doc:name="Use cached token" doc:id="fb6e238b-265c-4301-b158-93bdff145f52" message="Using cached Zoom token"/>
+					<set-variable value="#[vars.cachedToken]" doc:name="Set Variable" doc:id="a67c69f5-1722-47c5-ae98-9d1c4054b048" variableName="zoomToken"/>
+				</when>
+				<otherwise >
+					<logger level="INFO" doc:name="New token" doc:id="cc8b527c-a7d8-498f-a9f1-dd944b816552" message="Fetching new Zoom token"/>
+					<until-successful maxRetries="3" doc:name="Until Successful" doc:id="044875b0-dfb5-4b96-bd37-b77172b71a9d" millisBetweenRetries="5000">
+				<http:request doc:name="Get Zoom Token" doc:id="d327b5e2-afbd-44ae-8ac7-8fa7d8697ba3" method="POST" url="https://zoom.us/oauth/token" target="zoomToken" targetValue="#[payload.access_token]">
+					<http:body><![CDATA[grant_type=account_credentials&account_id=${zoom.accountId}]]></http:body>
+					<http:headers><![CDATA[#[output application/java
+import dw::core::Binaries
+---
+{
+  'Authorization' : 'Basic ' ++ Binaries::toBase64((p('zoom.clientId') ++ ':' ++ p('zoom.clientSecret')) as Binary),
+  'Content-Type' : 'application/x-www-form-urlencoded'
+}]]]></http:headers>
+				</http:request>
+			</until-successful>
+					<choice>
+            <when expression="#[isEmpty(vars.zoomToken)]">
+                <raise-error type="ZOOM:TOKEN_EMPTY" description="Zoom token is empty" />
+            </when>
+        </choice>
+					<os:store doc:name="Store Token" doc:id="c3643980-a4bd-4366-b1df-e0c46e354154" key="zoomToken" objectStore="ObjectStore_Config">
+						<os:value ><![CDATA[#[vars.zoomToken]]]></os:value>
+					</os:store>
+					<logger level="INFO" doc:name="Token stored" doc:id="cc8e1af3-1741-4bfa-9524-d3121de0dc11" message="New Zoom token stored"/>
+				</otherwise>
+			</choice>
+			<error-handler >
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1646c2f0-f2fb-4bbb-8809-be7276423b76" type="ANY">
+					<logger level="ERROR" doc:name="Logger" doc:id="6b4e963d-d171-4280-b732-d60bf2adaedd" message="Zoom Token Error | Type: #[error.errorType] | Desc: #[error.description] | Cause: #[error.cause]"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+	</sub-flow>
+	<flow name="sf-zoom-integrationFlow" doc:id="071c164e-59c6-4fdd-b21b-dbc1df4a3c91" >
+		<salesforce:replay-channel-listener doc:name="Replay channel listener" doc:id="79f8b376-1d27-4868-820f-d196f1f18dd3" config-ref="Salesforce_Config" replayOption="FROM_LAST_REPLAY_ID" streamingChannel="/data/LeadChangeEvent"/>
+		<logger level="INFO" doc:name="Logger" doc:id="51c25717-ff6b-44a7-aa1b-358f89556566" message="Received event:  #[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="e2098d4a-9f44-4306-ab5d-fbf7dd1efb89">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+  leadId: payload.data.payload.ChangeEventHeader.recordIds[0],
+  changeType: payload.data.payload.ChangeEventHeader.changeType,
+  changedFields: payload.data.payload.ChangeEventHeader.changedFields,
+  Demo_Date_Time__c: payload.data.payload.Demo_Date_Time__c,
+  Demo_Status__c: payload.data.payload.Demo_Status__c,
+  Email: payload.data.payload.Email
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="cb94e400-3294-4055-affb-dfc8b2c42884">
+			<when expression='#[(payload.changeType == "CREATE" and payload.Demo_Status__c == "Scheduled" and payload.Demo_Date_Time__c != null)&#10;or&#10;(payload.changeType == "UPDATE" and ((payload.changedFields contains "Demo_Date_Time__c") or (payload.changedFields contains "Demo_Status__c")))]'>
+						<salesforce:query doc:name="Get Lead" doc:id="058075ff-1722-441f-b235-b70146cd5895" config-ref="Salesforce_Config" target="lead" targetValue="#[payload[0]]">
+			<salesforce:salesforce-query><![CDATA[SELECT Id, Email, Demo_Status__c, Demo_Date_Time__c, Demo_Zoom_Link__c, Demo_Zoom_Meeting_ID__c
+FROM Lead
+WHERE Id = ':id']]></salesforce:salesforce-query>
+			<salesforce:parameters><![CDATA[#[output application/java
+---
+{
+	id : payload.leadId
+}]]]></salesforce:parameters>
+		</salesforce:query>
+						<choice doc:name="Choice" doc:id="1ba4fb89-c848-4562-a6a9-198837990ed7">
+						<when expression='#[(payload.changeType == "CREATE" and vars.lead.Demo_Status__c == "Scheduled" and vars.lead.Demo_Date_Time__c != null)&#10;or&#10;(payload.changeType == "UPDATE" &#10;	and (vars.lead.Demo_Zoom_Meeting_ID__c == null or vars.lead.Demo_Zoom_Meeting_ID__c == "")&#10;	and vars.lead.Demo_Status__c == "Scheduled"&#10;	and vars.lead.Demo_Date_Time__c != null&#10;	)]'>
+						<flow-ref doc:name="Get Zoom Token" doc:id="729748ac-f5a3-401a-960c-7814fd481f5d" name="getZoomToken" />
+						<http:request doc:name="Create Zoom Meeting" doc:id="3e53289a-c65e-4929-8663-79dde2306f5f" method="POST" url="https://api.zoom.us/v2/users/me/meetings" target="zoomCreateResponse">
+<reconnect frequency="5000" />
+					<http:body><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+  'topic': "Demo Meeting",
+  'type': 2,
+  'start_time': (vars.lead.Demo_Date_Time__c as DateTime) as String {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"},
+  'duration': 30,
+  'agenda': "Product Demo Zoom Meeting",
+  'settings': {
+	  approval_type: 0,
+	  registration_type: 1
+	}
+}]]]></http:body>
+
+<http:headers><![CDATA[#[output application/java
+---
+{
+  "Authorization": "Bearer " ++ vars.zoomToken,
+  "Content-Type": "application/json"
+}]]]></http:headers>
+		</http:request>
+						<salesforce:update doc:name="Insert meeting ID and link" doc:id="1c2224ba-75b8-435b-b4c0-6763e38088ae" config-ref="Salesforce_Config" type="Lead" target="sfInsertResponse">
+							<salesforce:records><![CDATA[#[%dw 2.0
+output application/java
+---
+[
+  {
+    Id: vars.lead.Id,
+    Demo_Zoom_Meeting_ID__c: vars.zoomCreateResponse.id as String,
+    Demo_Zoom_Link__c: vars.zoomCreateResponse.join_url
+  }
+]]]]></salesforce:records>
+						</salesforce:update>
+						<email:send doc:name="Schedule email" doc:id="9c682486-237b-4fce-93a8-56c6befbf634" config-ref="Email_SMTP" subject="Zoom Demo Meeting">
+					<email:to-addresses>
+						<email:to-address value="#[vars.lead.Email]" />
+					</email:to-addresses>
+					<email:body contentType="text/html">
+						<email:content><![CDATA[#[%dw 2.0
+output text/plain
+---
+"<p>Dear customer,</p>" ++
+"<p>Your demo meeting has been scheduled.</p>" ++
+"<p>Date: " ++ ((vars.lead.Demo_Date_Time__c as DateTime) as String {format: "MMM dd, yyyy, HH:mm"} ++ " UTC") ++ "<br>" ++
+"Join URL: <a href=" ++ (vars.zoomCreateResponse.join_url default "") ++ ">" ++ (vars.zoomCreateResponse.join_url default "") ++ "</a></p>" ++
+"<p>Best regards,<br>Your Company</p>"]]]></email:content>
+					</email:body>
+				</email:send>
+					</when>
+							<when expression='#[payload.changeType == "UPDATE" &#10;and vars.lead.Demo_Status__c == "Scheduled"&#10;and (payload.changedFields contains "Demo_Date_Time__c")&#10;and vars.lead.Demo_Date_Time__c != null&#10;and not (vars.lead.Demo_Zoom_Meeting_ID__c == null or vars.lead.Demo_Zoom_Meeting_ID__c == "")]'>
+								<flow-ref doc:name="Get Zoom Token" doc:id="e0c10697-97a7-4ce6-ad9f-f4af93a811e7" name="getZoomToken" />
+						<http:request doc:name="Update Zoom Meeting" doc:id="7cfd2f23-44dd-4be5-972a-393109934ebf" method="PATCH" url="https://api.zoom.us/v2/meetings/{meetingId}" target="zoomUpdateResponse">
+							<reconnect />
+							<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+  start_time: (vars.lead.Demo_Date_Time__c as DateTime) as String {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"}
+}]]]></http:body>
+							<http:headers ><![CDATA[#[output application/java
+---
+{
+  "Authorization": "Bearer " ++ vars.zoomToken,
+  "Content-Type": "application/json"
+}]]]></http:headers>
+							<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	meetingId : vars.lead.Demo_Zoom_Meeting_ID__c
+}]]]></http:uri-params>
+						</http:request>
+						<email:send doc:name="Reschedule email" doc:id="fb7a8eb6-aa45-49f1-9485-e06cc46173d9" config-ref="Email_SMTP" subject="Zoom Demo Meeting - rescheduled" >
+							<email:to-addresses >
+								<email:to-address value="#[vars.lead.Email]" />
+							</email:to-addresses>
+							<email:body contentType="text/html" >
+								<email:content ><![CDATA[#[%dw 2.0
+output text/plain
+---
+"<p>Dear customer,</p>" ++
+"<p>Your demo meeting has been rescheduled:</p>" ++
+"<p>Date: " ++ ((vars.lead.Demo_Date_Time__c as DateTime) as String {format: "MMM dd, yyyy, HH:mm"} ++ " UTC") ++ "<br>" ++
+"Join URL: <a href=" ++ (vars.lead.Demo_Zoom_Link__c default "") ++ ">" ++ (vars.lead.Demo_Zoom_Link__c default "") ++ "</a></p>" ++
+"<p>Best regards,<br>Your Company</p>"]]]></email:content>
+							</email:body>
+						</email:send>
+							</when>
+							<when expression='#[payload.changeType == "UPDATE"&#10;and vars.lead.Demo_Status__c == "Cancelled"&#10;and not (vars.lead.Demo_Zoom_Meeting_ID__c == null or vars.lead.Demo_Zoom_Meeting_ID__c == "")]'>
+						<flow-ref doc:name="Get Zoom Token" doc:id="62882d2c-c4c7-4601-80cd-3ea21eeb7752" name="getZoomToken" />
+						<http:request doc:name="Delete Zoom Meeting" doc:id="7ffa3fa6-ec4f-49cb-8c67-5ad17211a585" method="DELETE" url="https://api.zoom.us/v2/meetings/{meetingId}" target="zoomUpdateResponse" >
+							<reconnect />
+							<http:body ><![CDATA[#[%dw 2.0
+output application/json
+---
+{
+  start_time: (vars.lead.Demo_Date_Time__c as DateTime) as String {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"}
+}]]]></http:body>
+							<http:headers ><![CDATA[#[output application/java
+---
+{
+  "Authorization": "Bearer " ++ vars.zoomToken
+}]]]></http:headers>
+							<http:uri-params ><![CDATA[#[output application/java
+---
+{
+	meetingId : vars.lead.Demo_Zoom_Meeting_ID__c
+}]]]></http:uri-params>
+						</http:request>
+						<salesforce:update doc:name="Delete meeting ID and link" doc:id="b40f3135-924e-4fbf-803d-0ce4049eb253" config-ref="Salesforce_Config" type="Lead">
+							<salesforce:records ><![CDATA[#[%dw 2.0
+output application/java
+---
+[
+  {
+    Id: vars.lead.Id,
+    fieldsToNull: [
+    	'Demo_Zoom_Meeting_ID__c', 
+    	'Demo_Zoom_Link__c'
+    ]
+  }
+]]]]></salesforce:records>
+						</salesforce:update>
+						<email:send doc:name="Cancel email" doc:id="d134e6a1-ab16-4c45-9122-ae37326d821f" config-ref="Email_SMTP" subject="Zoom Demo Meeting - canceled" >
+							<email:to-addresses >
+								<email:to-address value="#[vars.lead.Email]" />
+							</email:to-addresses>
+							<email:body contentType="text/html" >
+								<email:content ><![CDATA[#[%dw 2.0
+output text/plain
+---
+"<p>Dear customer,</p>" ++
+"<p>Your demo meeting has been <b>canceled</b>.</p>" ++
+"<p>Canceled date: " ++ ((vars.lead.Demo_Date_Time__c as DateTime) as String {format: "MMM dd, yyyy, HH:mm"} ++ " UTC") ++ "<br>" ++
+"<p>Best regards,<br>Your Company</p>"]]]></email:content>
+							</email:body>
+						</email:send>
+							</when>
+					<otherwise>
+						<logger level="INFO" doc:name="Nothing to do" doc:id="dd35f7b4-9287-40a9-863f-58fc4f2f6c87" message="Nothing to do." />
+							</otherwise>
+						</choice>
+			</when>
+			<otherwise>
+				<logger level="INFO" doc:name="Irrelevant change" doc:id="6aefc6f0-9487-4dd7-bc64-ee433ca7a75e" message="Irrelevant change. " />
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d9432cb5-8d23-4e5d-baea-b66e4beda6aa" >
+				<logger level="ERROR" doc:name="Logger" doc:id="f9305416-c2ed-43a3-8608-e623da2969a0" message="Main flow error: #[error.errorType]"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

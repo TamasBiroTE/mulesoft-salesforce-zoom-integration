@@ -1,0 +1,11 @@
+%dw 2.0
+
+type auto_af1e996c_c9bd_455c_adc2_9017457d5180_Input_Payload = {|
+  leadId: Any, 
+  changeType: Number, 
+  changedFields: Number, 
+  Demo_Date_Time__c: Number, 
+  Demo_Status__c: Number, 
+  Email: Number
+|}
+
