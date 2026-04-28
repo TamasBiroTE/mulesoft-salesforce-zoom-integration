@@ -33,6 +33,7 @@ The integration is event-driven using Salesforce Change Data Capture (CDC).
 ```bash
 git clone <repo-url>
 cd mulesoft-salesforce-zoom-integration
+mvn clean install
 ```
 
 
@@ -44,7 +45,7 @@ Create a local config file:
 cp config.yaml config-dev.yaml
 ```
 
-Fill in real values:
+Fill in credentials:
 
 ```yaml
 zoom:
