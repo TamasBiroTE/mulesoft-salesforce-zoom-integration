@@ -1,8 +1,9 @@
-# Salesforce → Zoom Integration using MuleSoft
+# Salesforce - Zoom Integration API using MuleSoft
 
-## Overview
+* Schedule Zoom Meetings for Salesforce Leads
+* Real-time integration between Salesforce and Zoom using MuleSoft
 
-This project implements a real-time integration between Salesforce and Zoom using MuleSoft.
+## 📌 Overview
 
 When a Lead is created or updated in Salesforce, the application automatically:
 
@@ -13,9 +14,8 @@ When a Lead is created or updated in Salesforce, the application automatically:
 
 The integration is event-driven using Salesforce Change Data Capture (CDC).
 
----
 
-## Architecture
+## ⚙️ Architecture
 
 * **Source**: Salesforce CDC (`LeadChangeEvent`)
 * **Integration Layer**: MuleSoft (Anypoint Studio / CloudHub)
@@ -25,72 +25,8 @@ The integration is event-driven using Salesforce Change Data Capture (CDC).
   * Salesforce (store meeting ID and link)
   * SMTP (email notifications)
 
----
 
-## Business Logic
-
-### Create Meeting
-
-Triggered when:
-
-* `changeType = CREATE`
-* `Demo_Status__c = Scheduled`
-* `Demo_Date_Time__c` is not null
-
-Actions:
-
-* Create Zoom meeting
-* Store `Meeting ID` and `Join URL` in Salesforce
-* Send email notification
-
----
-
-### Update Meeting
-
-Triggered when:
-
-* `changeType = UPDATE`
-* `Demo_Date_Time__c` changed
-* Meeting already exists
-
-Actions:
-
-* Update Zoom meeting time
-* Send reschedule email
-
----
-
-### Delete Meeting
-
-Triggered when:
-
-* `changeType = UPDATE`
-* `Demo_Status__c = Cancelled`
-* Meeting exists
-
-Actions:
-
-* Delete Zoom meeting
-* Clear meeting fields in Salesforce
-* Send cancellation email
-
----
-
-### ✔ Token Caching
-
-* Zoom OAuth token is cached using Object Store
-* Reduces unnecessary token requests
-
----
-
-### ✔ Error Handling
-
-* Zoom token retrieval uses retry (`until-successful`)
-* Errors are propagated and logged
-
----
-
-## Setup Instructions
+## 🛠️ Setup Instructions
 
 ### 1. Clone Repository
 
@@ -99,7 +35,6 @@ git clone <repo-url>
 cd mulesoft-salesforce-zoom-integration
 ```
 
----
 
 ### 2. Configuration
 
@@ -129,7 +64,6 @@ email:
   password: YOUR_APP_PASSWORD
 ```
 
----
 
 ### 3. Run Locally
 
@@ -141,7 +75,7 @@ Set environment:
 
 Run from Anypoint Studio.
 
----
+
 
 ## CloudHub Deployment
 
@@ -153,25 +87,29 @@ Set in Runtime Manager:
 env=prod
 ```
 
----
+## Token Caching
+
+* Zoom OAuth token is cached using Object Store
+* Reduces unnecessary token requests
+
+
+## Error Handling
+
+* Zoom token retrieval uses retry (`until-successful`)
+* Errors are propagated and logged
+
 
 ## Security
 
 * Sensitive data is stored outside the repository
 * `.gitignore` excludes: `config-dev.yaml`, `config-prod.yaml`
 
----
 
 ## Email Notifications
 
-Emails are sent via SMTP (Gmail).
+* Emails are sent via SMTP (Gmail).
+* Make sure: App Password is configured
 
-Make sure:
-
-* App password is configured
-* "Less secure apps" is not required (use App Password)
-
----
 
 ## License
 
