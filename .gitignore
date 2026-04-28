@@ -50,3 +50,4 @@ velocity.log
 # AUTHENTICATION SECRETS
 # -------------------------
 config-dev.yaml
+config-prod.yaml
