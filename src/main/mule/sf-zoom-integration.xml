@@ -245,7 +245,7 @@ output text/plain
 						</choice>
 			</when>
 			<otherwise>
-				<logger level="INFO" doc:name="Irrelevant change" doc:id="6aefc6f0-9487-4dd7-bc64-ee433ca7a75e" message="Irrelevant change. " />
+				<logger level="INFO" doc:name="Irrelevant change" doc:id="6aefc6f0-9487-4dd7-bc64-ee433ca7a75e" message="Irrelevant change." />
 			</otherwise>
 		</choice>
 		<error-handler >
