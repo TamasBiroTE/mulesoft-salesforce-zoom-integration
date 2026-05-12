@@ -29,7 +29,7 @@ jobs:
             ${{ runner.os }}-m2
 
       - name: Build and Deploy to CloudHub
-        run: mvn clean deploy -DskipTests -DskipExchangeDeploy=true
+        run: mvn clean deploy -DskipTests
         env:
           ANYPOINT_CLIENT_ID: ${{ secrets.ANYPOINT_CLIENT_ID }}
           ANYPOINT_CLIENT_SECRET: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
