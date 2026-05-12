@@ -4,7 +4,7 @@
 
 	<groupId>5b7a1dff-c92d-408f-9bad-c94ca9688b02</groupId>
 	<artifactId>sf-zoom-integration</artifactId>
-	<version>1.0.3</version>
+	<version>1.0.4</version>
 	<packaging>mule-application</packaging>
 
 	<name>sf-zoom-integration</name>
@@ -32,7 +32,7 @@
 				<configuration>
 					<cloudHubDeployment>
 						<uri>https://anypoint.mulesoft.com</uri>
-						<muleVersion>4.6.0</muleVersion>
+						<muleVersion>${app.runtime}</muleVersion>
 						<connectedAppClientId>${env.ANYPOINT_CLIENT_ID}</connectedAppClientId>
 						<connectedAppClientSecret>${env.ANYPOINT_CLIENT_SECRET}</connectedAppClientSecret>
 						<connectedAppGrantType>client_credentials</connectedAppGrantType>
@@ -42,7 +42,7 @@
 						<workerType>MICRO</workerType>
 						<region>eu-west-1</region>
 					</cloudHubDeployment>
-					<classifier>---- select project type ----</classifier>
+					<classifier>mule-application</classifier>
 				</configuration>
 			</plugin>
 		</plugins>
