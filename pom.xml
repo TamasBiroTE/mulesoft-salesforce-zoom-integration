@@ -2,9 +2,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.mycompany</groupId>
+	<groupId>5b7a1dff-c92d-408f-9bad-c94ca9688b02</groupId>
 	<artifactId>sf-zoom-integration</artifactId>
-	<version>1.0.1</version>
+	<version>1.0.3</version>
 	<packaging>mule-application</packaging>
 
 	<name>sf-zoom-integration</name>
@@ -30,6 +30,18 @@
 				<version>${mule.maven.plugin.version}</version>
 				<extensions>true</extensions>
 				<configuration>
+					<cloudHubDeployment>
+						<uri>https://anypoint.mulesoft.com</uri>
+						<muleVersion>4.6.0</muleVersion>
+						<connectedAppClientId>${env.ANYPOINT_CLIENT_ID}</connectedAppClientId>
+						<connectedAppClientSecret>${env.ANYPOINT_CLIENT_SECRET}</connectedAppClientSecret>
+						<connectedAppGrantType>client_credentials</connectedAppGrantType>
+						<applicationName>sf-zoom-integration</applicationName>
+						<environment>Sandbox</environment>
+						<workers>1</workers>
+						<workerType>MICRO</workerType>
+						<region>eu-west-1</region>
+					</cloudHubDeployment>
 					<classifier>---- select project type ----</classifier>
 				</configuration>
 			</plugin>
