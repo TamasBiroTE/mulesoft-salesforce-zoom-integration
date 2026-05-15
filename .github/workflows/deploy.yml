@@ -29,7 +29,7 @@ jobs:
             ${{ runner.os }}-m2
 
       - name: Deploy to CloudHub
-        run: mvn clean package mule:deploy -DskipTests
-        env:
-          ANYPOINT_CLIENT_ID: ${{ secrets.ANYPOINT_CLIENT_ID }}
-          ANYPOINT_CLIENT_SECRET: ${{ secrets.ANYPOINT_CLIENT_SECRET }}
+        run: |
+          mvn clean package mule:deploy -DskipTests \
+            -Danypoint.clientId="${{ secrets.ANYPOINT_CLIENT_ID }}" \
+            -Danypoint.clientSecret="${{ secrets.ANYPOINT_CLIENT_SECRET }}"
